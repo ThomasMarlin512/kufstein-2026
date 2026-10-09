@@ -6,7 +6,7 @@ async function initLive(){
   if(!window.supabase?.createClient) throw Error('Supabase-Bibliothek nicht geladen');
   sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
   let {data:{session},error:se}=await sb.auth.getSession();if(se)throw se;
-  if(!session){let result=await sb.auth.signInAnonymously();if(result.error)throw result.error;session=result.data.session}
+  if(!session){showJoin();return}
   authUser=session?.user;if(!authUser)throw Error('Anmeldung nicht möglich');
   const membership=await sb.from('group_members').select('display_name').eq('user_id',authUser.id).maybeSingle();
   if(membership.error)throw membership.error;
@@ -14,7 +14,7 @@ async function initLive(){
   if(!groupJoined){showJoin();return}
   document.body.classList.add('member-ready');
   document.getElementById('person').value=membership.data.display_name;
-  state.name=membership.data.display_name;save();
+  state.name=membership.data.display_name;save();showEmailSettings();
   const own=await sb.from('votes').select('activity_id,choice').eq('user_id',authUser.id);
   if(own.error)throw own.error;
   for(const x of own.data||[])state[x.activity_id]=x.choice;
@@ -51,21 +51,42 @@ function showJoin(){
  el=document.createElement('section');el.id='group-join';el.className='card';
  el.style='position:fixed;inset:0;z-index:99999;max-width:none;margin:0;padding:24px;background:rgba(2,13,27,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;overflow:auto';
  document.body.append(el)}
- el.innerHTML='<h2>🔐 Gruppenbeitritt</h2><p>Für namentliche Abstimmungen: Namen und Gruppencode eingeben. Dein Name wird den anderen Gruppenmitgliedern angezeigt.</p><input id="join-name" maxlength="50" placeholder="Dein Name" value="'+escapeText(state.name||'')+'"><input id="join-code" type="password" placeholder="Gruppencode" style="margin:8px"><button id="join-button">Gruppe beitreten</button><p id="join-status"></p>';
+ el.innerHTML='<h2>🔐 Kufstein 2026</h2><p>Mit Namen und Gruppencode beitreten oder mit einer bereits verknüpften E-Mail wieder anmelden.</p><div style="width:min(90vw,480px)"><input id="join-name" maxlength="50" placeholder="Dein Name" value="'+escapeText(state.name||'')+'"><input id="join-code" type="password" placeholder="Gruppencode" style="margin:8px 0"><button id="join-button" style="width:100%">Gruppe beitreten</button><p id="join-status"></p><hr style="margin:24px 0;border-color:#456"><p>Bereits mit E-Mail verknüpft?</p><input id="login-email" type="email" placeholder="E-Mail-Adresse"><button id="login-email-button" style="width:100%;margin-top:8px">Anmeldelink senden</button><p id="login-email-status"></p></div>';
  document.getElementById('join-button').onclick=joinGroup;
+ document.getElementById('login-email-button').onclick=loginWithEmail;
 }
 async function joinGroup(){
  const name=document.getElementById('join-name').value.trim(),code=document.getElementById('join-code').value;
  const b=document.getElementById('join-button');b.disabled=true;
+ if(!authUser){const anon=await sb.auth.signInAnonymously();if(anon.error){document.getElementById('join-status').textContent=anon.error.message;b.disabled=false;return}authUser=anon.data.user}
  const r=await sb.rpc('join_kufstein_group',{p_code:code,p_name:name});
  b.disabled=false;
  if(r.error){document.getElementById('join-status').textContent=r.error.message;return}
- groupJoined=true;document.body.classList.add('member-ready');state.name=name;save();document.getElementById('person').value=name;
+ groupJoined=true;document.body.classList.add('member-ready');state.name=name;showEmailSettings();save();document.getElementById('person').value=name;
  document.getElementById('group-join').remove();
  await refreshVotes();
  const own=await sb.from('votes').select('activity_id,choice').eq('user_id',authUser.id);
  if(!own.error){for(const x of own.data||[])state[x.activity_id]=x.choice;save();render()}
  setInterval(refreshVotes,15000);
+}
+async function loginWithEmail(){
+ const email=document.getElementById('login-email').value.trim(),status=document.getElementById('login-email-status');
+ if(!email){status.textContent='Bitte E-Mail eingeben';return}
+ const result=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}});
+ status.textContent=result.error?'Anmeldung fehlgeschlagen: '+result.error.message:'Wenn diese E-Mail bereits verknüpft ist, erhältst du einen Anmeldelink.';
+}
+function showEmailSettings(){
+ if(document.getElementById('email-settings'))return;
+ const el=document.createElement('section');el.id='email-settings';el.className='card';
+ el.style='max-width:1100px;margin:16px auto;padding:20px';
+ el.innerHTML='<h2>✉️ Wiederanmeldung per E-Mail</h2><p>Optional: Verknüpfe eine E-Mail mit deinem aktuellen Teilnehmerkonto, damit deine Stimmen auch auf anderen Geräten verfügbar bleiben. Bitte verwende dafür die aktuelle Anmeldung.</p><input type="email" id="link-email" placeholder="Deine E-Mail-Adresse"><button id="link-email-button">E-Mail verknüpfen</button><p id="link-email-status"></p>';
+ const main=document.querySelector('main');if(main)main.prepend(el);else document.body.append(el);
+ document.getElementById('link-email-button').onclick=async()=>{
+ const email=document.getElementById('link-email').value.trim(),status=document.getElementById('link-email-status');
+ if(!email){status.textContent='Bitte E-Mail eingeben';return}
+ const r=await sb.auth.updateUser({email});
+ status.textContent=r.error?'Fehler: '+r.error.message:'Bestätigungs-E-Mail prüfen. Nach Bestätigung kannst du dich per E-Mail wieder anmelden.';
+ };
 }
 function summary(){return 'Kufstein 28.–29.11.2026 – Abstimmung von '+(state.name||'Unbekannt')+'\n'+events.map(e=>e.title+': '+({yes:'Ja',maybe:'Vielleicht',no:'Nein'}[state[e.id]]||'Offen')).join('\n')}async function exportVote(){const t=summary();try{await navigator.clipboard.writeText(t);document.getElementById('status').textContent='Abstimmung kopiert!'}catch{prompt('Text kopieren:',t)}}function sharePage(){const u=location.protocol==='file:'?'':location.href;if(!u){alert('Bitte die Webseite zuerst online veröffentlichen, damit du einen Link teilen kannst.');return}if(navigator.share){navigator.share({title:'Kufstein 2026',url:u}).catch(()=>{})}else{navigator.clipboard.writeText(u).then(()=>alert('Link kopiert')).catch(()=>prompt('Link:',u))}}function shareCarpool(){window.open('https://wa.me/?text='+encodeURIComponent('Kufstein 28.11.: Wann fahren wir los und wo treffen sich unsere Fahrgemeinschaften?'),'_blank')}function addIdea(){let x=document.getElementById('idea').value.trim();if(!x)return;let a=JSON.parse(localStorage.getItem('kufstein_ideas_v3')||'[]');a.push(x);localStorage.setItem('kufstein_ideas_v3',JSON.stringify(a));document.getElementById('idea').value='';renderIdeas()}function renderIdeas(){if(!document.getElementById('ideas'))return;document.getElementById('ideas').innerHTML=JSON.parse(localStorage.getItem('kufstein_ideas_v3')||'[]').map(x=>'<li>'+x.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"\'":'&#39;'}[c]||c))+'</li>').join('')}function shareIdea(){let x=document.getElementById('idea').value.trim();if(x)window.open('https://wa.me/?text='+encodeURIComponent('Kufstein 2026 – Idee: '+x),'_blank')}function shareWhatsApp(){window.open('https://wa.me/?text='+encodeURIComponent(summary()),'_blank')}
 let taskRows=[],taskBusy=false;
