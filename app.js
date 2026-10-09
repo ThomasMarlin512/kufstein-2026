@@ -64,22 +64,36 @@ async function vote(id,v){
 }function voteOverview(e){const rows=namedVotes[e.id]||[];const groups=[['yes','👍 Ja'],['maybe','🤔 Vielleicht'],['no','👎 Nein']];return '<div class="vote-overview">'+groups.map(([v,label])=>{const names=rows.filter(x=>x.choice===v).map(x=>escapeText(x.name));const pct=rows.length?Math.round(names.length/rows.length*100):0;return '<div class="vote-group '+v+'"><b>'+label+' <span>'+names.length+' · '+pct+'%</span></b><div class="vote-track"><div class="vote-fill" style="width:'+pct+'%"></div></div><div class="vote-names">'+(names.length?names.map(n=>'<span class="vote-name">'+n+'</span>').join(''):'<span class="vote-empty">Noch niemand</span>')+'</div></div>'}).join('')+'</div>'}
 function render(){document.getElementById('cards').innerHTML=events.map(e=>`<article class="card"><img class="photo" src="${e.photo}" alt="${escapeText(e.photoAlt)}" loading="lazy"><div class="card-content"><span class="pill">${e.time}</span><h3>${e.icon} ${e.title}</h3><p class="price">${e.cost}</p><p>${e.desc}</p><a href="${e.url}" target="_blank" rel="noopener">Weitere Infos ↗</a><div class="vote">${[['yes','👍 Ja'],['maybe','🤔 Vielleicht'],['no','👎 Nein']].map(([v,label])=>`<button class="${state[e.id]===v?'selected':''}" onclick="vote('${e.id}','${v}')">${label}</button>`).join('')}</div><small>${state[e.id]?'Deine Stimme: '+({yes:'Ja',maybe:'Vielleicht',no:'Nein'}[state[e.id]]):'Noch nicht abgestimmt'} · Live: 👍 ${(liveCounts[e.id]||{}).yes||0} · 🤔 ${(liveCounts[e.id]||{}).maybe||0} · 👎 ${(liveCounts[e.id]||{}).no||0}</small><details class="vote-details"><summary>📊 Abstimmung ansehen</summary>${voteOverview(e)}</details><div class="photo-caption">Foto: <a href="${escapeText(e.photoSource)}" target="_blank" rel="noopener noreferrer">${escapeText(e.photoCredit)}</a></div></div></article>`).join('')}function escapeText(x){return String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function showJoin(){
- let el=document.getElementById('group-join');if(!el){
- el=document.createElement('section');el.id='group-join';el.className='card';
- el.style='position:fixed;inset:0;z-index:99999;max-width:none;margin:0;padding:24px;background:rgba(2,13,27,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;overflow:auto';
- document.body.append(el)}
- el.innerHTML='<h2>🔐 Kufstein 2026</h2><p>Wähle, ob du neu dabei bist oder dich wieder anmelden möchtest.</p><div style="width:min(90vw,480px)"><div style="display:flex;gap:8px;margin:16px 0"><button id="tab-new" style="flex:1" type="button">Gruppe beitreten</button><button id="tab-return" class="secondary" style="flex:1" type="button">Anmelden</button></div><div id="join-new-panel"><p>Nur für neue Teilnehmer</p><input id="join-name" maxlength="50" placeholder="Dein Name" value="'+escapeText(state.name||'')+'"><input id="join-code" type="password" placeholder="Gruppencode" style="margin:8px 0"><button id="join-button" style="width:100%">Gruppe beitreten</button><p id="join-status"></p></div><div id="join-return-panel" hidden><p>Mit bestehendem Namen und Gruppencode anmelden:</p><input id="return-name" maxlength="50" placeholder="Dein bisheriger Name" value="'+escapeText(state.name||'')+'"><input id="return-code" type="password" placeholder="Gruppencode" style="margin:8px 0"><button id="return-button" style="width:100%">Mit Name anmelden</button><p id="return-status"></p><hr style="margin:20px 0;border-color:#456"><p>Oder über deine verknüpfte E-Mail:</p><input id="login-email" type="email" placeholder="Deine E-Mail-Adresse"><button id="login-email-button" style="width:100%;margin-top:8px">Anmeldelink senden</button><p id="login-email-status"></p><small>Ohne zuvor verknüpfte E-Mail ist eine Wiederherstellung des bestehenden Kontos noch nicht möglich. Deine bisherigen Stimmen bleiben gespeichert.</small></div></div>';
- document.getElementById('tab-new').onclick=()=>{document.getElementById('join-new-panel').hidden=false;document.getElementById('join-return-panel').hidden=true;document.getElementById('tab-new').classList.remove('secondary');document.getElementById('tab-return').classList.add('secondary')};
- document.getElementById('tab-return').onclick=()=>{document.getElementById('join-new-panel').hidden=true;document.getElementById('join-return-panel').hidden=false;document.getElementById('tab-return').classList.remove('secondary');document.getElementById('tab-new').classList.add('secondary')};
- document.getElementById('join-button').onclick=joinGroup;
- document.getElementById('login-email-button').onclick=loginWithEmail;
- document.getElementById('return-button').onclick=returnWithName;
+ let el=document.getElementById('group-join');
+ if(!el){el=document.createElement('section');el.id='group-join';el.className='card';document.body.append(el)}
+ el.innerHTML=`<div class="auth-box">
+ <p class="auth-brand">KUFSTEIN 2026</p><h2>Anmelden</h2>
+ <p class="auth-intro">Mit deinem Nickname und dem Gruppencode zur Reiseplanung.</p>
+ <form id="return-form">
+ <label for="return-name">Nickname</label><input id="return-name" maxlength="50" autocomplete="username" placeholder="Dein Nickname" value="${escapeText(state.name||'')}" required>
+ <small>Bis du einen Nickname festlegst, funktioniert dein bisheriger Name.</small>
+ <label for="return-code">Gruppencode</label><input id="return-code" type="password" autocomplete="current-password" required>
+ <button id="return-button" type="submit">Anmelden</button><p id="return-status" class="auth-status" role="status" aria-live="polite"></p>
+ </form>
+ <details class="auth-alternative"><summary>Mit bestätigter E-Mail anmelden</summary>
+ <form id="email-login-form"><label for="login-email">E-Mail-Adresse</label><input id="login-email" type="email" autocomplete="email" placeholder="name@beispiel.at" required>
+ <button id="login-email-button" class="secondary" type="submit">Anmeldelink senden</button><p id="login-email-status" class="auth-status" role="status" aria-live="polite"></p></form>
+ </details>
+ <details id="join-new-panel" class="auth-join"><summary>Neu dabei? <span>Gruppe beitreten</span></summary>
+ <p>Nur für neue Teilnehmer. Wenn du schon dabei bist, melde dich oben an.</p>
+ <form id="join-form"><label for="join-name">Nickname</label><input id="join-name" minlength="2" maxlength="50" autocomplete="username" placeholder="Wähle einen Nickname" required>
+ <label for="join-code">Gruppencode</label><input id="join-code" type="password" autocomplete="current-password" required>
+ <button id="join-button" class="secondary" type="submit">Gruppe beitreten</button><p id="join-status" class="auth-status" role="status" aria-live="polite"></p></form>
+ </details></div>`;
+ document.getElementById('return-form').onsubmit=e=>{e.preventDefault();returnWithName()};
+ document.getElementById('join-form').onsubmit=e=>{e.preventDefault();joinGroup()};
+ document.getElementById('email-login-form').onsubmit=e=>{e.preventDefault();loginWithEmail()};
 }
 async function joinGroup(){
  if(signInBusy)return;
  const name=document.getElementById('join-name').value.trim(),code=document.getElementById('join-code').value;
  const status=document.getElementById('join-status'),button=document.getElementById('join-button');
- if(!name||!code){status.textContent='Bitte Name und Gruppencode eingeben';return}
+ if(!name||!code){status.textContent='Bitte Nickname und Gruppencode eingeben';return}
  signInBusy=true;button.disabled=true;status.textContent='Anmeldung wird abgeschlossen …';
  try{
   const {data:{session},error:sessionError}=await sb.auth.getSession();
@@ -99,7 +113,7 @@ async function returnWithName(){
  if(signInBusy)return;
  const name=document.getElementById('return-name').value.trim(),code=document.getElementById('return-code').value;
  const status=document.getElementById('return-status'),button=document.getElementById('return-button');
- if(!name||!code){status.textContent='Bitte Name und Gruppencode eingeben';return}
+ if(!name||!code){status.textContent='Bitte Nickname und Gruppencode eingeben';return}
  signInBusy=true;button.disabled=true;status.textContent='Bestehende Stimmen werden geladen …';
  try{
   const {data:{session},error:sessionError}=await sb.auth.getSession();
