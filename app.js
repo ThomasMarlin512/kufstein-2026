@@ -1,25 +1,42 @@
 const events=[{id:'festung',photo:"https://presse.kufstein.com/media/zoombilder/weihnachtszauber-festung-kufstein-festungsarena.jpg",photoAlt:"Weihnachtszauber in der Festungsarena Kufstein",photoCredit:"Kufsteinerland",photoSource:"https://presse.kufstein.com/de/winter-im-kufsteinerland-staedtetrip-meets-skiurlaub.html",icon:'🏰',title:'Weihnachtszauber Festung',time:'Sa 13:00–14:20',cost:'6,50 € p. P. ab 10 Personen',desc:'Adventmarkt, historisches Handwerk und Glühwein. Besuch bis 14:20; danach 20 Minuten für Abstieg und Wechsel zum Stadtpark einplanen. Geöffnet 11–19 Uhr; letzter Einlass 18 Uhr.',url:'https://www.festung.kufstein.at/de/weihnachtszauber-auf-der-festung-kufstein-2-1-1-1.html'},{id:'stadtpark',photo:"https://kultur.kufstein.at/feratel/event/large/kufstein-weihnachtsmarkt-im-stadtpark-kufstein-weihnachtsmarkt-stadtpark-2.jpg",photoAlt:"Weihnachtsmarkt im Stadtpark Kufstein",photoCredit:"Kultur Kufstein",photoSource:"https://kultur.kufstein.at/de/kufstein/events/weihnachtsmarkt-im-stadtpark-kufstein.html",icon:'🎄',title:'Weihnachtsmarkt Stadtpark',time:'Sa 14:40–16:40 · 2 Stunden',cost:'Eintritt frei',desc:'Glühwein, Essen, Live-Musik. Zwei Stunden Aufenthalt (+30 Minuten); danach 10 Minuten Wegreserve zum Hotel. Samstag 13–20 Uhr.',url:'https://www.kufstein.com/de/kultur/events-tirol/advent-im-kufsteinerland.html'},{id:'auracher',photo:"https://www.kufstein.at/feratel/info/large/kufstein-wirts-und-weinhaus-auracher-loechl-auracher-loechl-restaurant-kaminstube.jpg",photoAlt:"Kaminstube im Restaurant Auracher Löchl",photoCredit:"Kufstein Tourismus",photoSource:"https://www.kufstein.at/de/kufstein/info/wirts-und-weinhaus-auracher-loechl.html",icon:'🍽️',title:'Abendessen Auracher Löchl',time:'Sa 18:00–20:15 · Reserviert',cost:'Nach Karte · 13 Plätze bestätigt',desc:'Verbindlich reserviert für 13 Personen am 28.11., 18:00–20:15 Uhr. Bei über 20 Minuten Verspätung kann die Reservierung verfallen.',url:'https://www.auracher-loechl.at/'},{id:'braeu',photo:"https://api.braeustueberl-kufstein.at/fileadmin/_processed_/e/e/csm_braeustueberlsaal-8-kufstein-tirol-austria_b1b34962bb.jpg",photoAlt:"Bräustüberl-Saal in Kufstein",photoCredit:"Bräustüberl Kufstein",photoSource:"https://www.braeustueberl-kufstein.at/braeustueberl-saal",icon:'🍺',title:'Abendessen Bräustüberl',time:'Option · nicht im Tagesplan',cost:'Nach Karte, nicht bestätigt',desc:'Weitere Restaurantoption. Am Samstag bleibt das Auracher Löchl für 13 Personen von 18:00 bis 20:15 verbindlich reserviert.',url:'https://www.google.com/maps/search/?api=1&query=Br%C3%A4ust%C3%BCberl+Kufstein'},{id:'stollen',photo:"https://www.kufstein.com/feratel/info/large/kufstein-stollen-1930-gin-bar-stollen-1930-gin-bar-kufstein-innen.jpg",photoAlt:"Innenansicht der Gin-Bar Stollen 1930 in Kufstein",photoCredit:"Kufsteinerland",photoSource:"https://www.kufstein.com/en/kufstein/info/stollen-1930-gin-bar.html",icon:'🍸',title:'Stollen 1930 – Gin-Bar',time:'Sa ab 21:00',cost:'Getränke nach Karte',desc:'Speakeasy-Bar im Festungsberg, täglich 18–02 Uhr, Eintritt ab 21 Jahren. Gruppenbereich anfragen.',url:'https://www.auracher-loechl.at/stollen1930'},{id:'pure',photo:"https://static.wixstatic.com/media/31cd5a_9831a5e1d07f4537908827bcaef247db~mv2.jpg/v1/fill/w_640%2Ch_660%2Cal_c%2Cq_85%2Cusm_0.66_1.00_0.01%2Cenc_avif%2Cquality_auto/31cd5a_9831a5e1d07f4537908827bcaef247db~mv2.jpg",photoAlt:"Barbereich der PURE Lounge in Kufstein",photoCredit:"PURE Lounge",photoSource:"https://www.purelounge-club.at/",icon:'🎉',title:'PURE Lounge',time:'Sa ab 21:00 · Alternative',cost:'Eintritt / Mindestumsatz erfragen',desc:'Cocktails und Party; Samstagsöffnung laut Eintrag bis 02 Uhr. Programm am 28.11. noch nicht bestätigt.',url:'https://www.purelounge-club.at/'},{id:'walk',photo:"https://blog.kufstein.com/media/titelbilder/hd-roemerhofgasse-altstadt-kufstein.jpg",photoAlt:"Römerhofgasse in der Kufsteiner Altstadt",photoCredit:"Kufsteinerland",photoSource:"https://blog.kufstein.com/de/shoppingtour-mit-der-extraportion-erlebnis.html",icon:'☕',title:'Sonntag Altstadt & Kaffee',time:'So 11:00–12:30',cost:'Individuell',desc:'Gemütlicher Ausklang vor der Heimfahrt.',url:'https://www.kufstein.com/'}];const key='kufstein_votes_v3';let state=JSON.parse(localStorage.getItem(key)||'{}');document.getElementById('person').value=state.name||'';document.getElementById('person').addEventListener('input',e=>{state.name=e.target.value;save()});function save(){localStorage.setItem(key,JSON.stringify(state))}const SUPABASE_URL='https://rzzipqdozabuxrmoxhlw.supabase.co';
 const SUPABASE_KEY='sb_publishable_4MsQNsSWj2VXmONSNim-zg__T2QeLV0';
 let sb=null, authUser=null, liveCounts={}, liveError='', namedVotes={}, members={}, groupJoined=false;
+let liveRefreshTimer=null, signInBusy=false;
+async function activateMember(){
+ const {data:{session},error:sessionError}=await sb.auth.getSession();
+ if(sessionError)throw sessionError;
+ if(!session?.user)throw Error('Die Anmeldung konnte nicht gespeichert werden. Bitte erneut versuchen.');
+ authUser=session.user;
+ const membership=await sb.from('group_members').select('display_name').eq('user_id',authUser.id).maybeSingle();
+ if(membership.error)throw membership.error;
+ if(!membership.data)return false;
+ const own=await sb.from('votes').select('activity_id,choice').eq('user_id',authUser.id);
+ if(own.error)throw own.error;
+ groupJoined=true;
+ state.name=membership.data.display_name;
+ for(const e of events)delete state[e.id];
+ for(const x of own.data||[])state[x.activity_id]=x.choice;
+ save();
+ document.getElementById('person').value=state.name;
+ document.getElementById('group-join')?.remove();
+ document.getElementById('live-error')?.remove();
+ document.body.classList.add('member-ready');
+ liveError='';
+ await refreshVotes();
+ if(!liveRefreshTimer)liveRefreshTimer=setInterval(refreshVotes,15000);
+ return true;
+}
+async function completeSignIn(){
+ if(!await activateMember())throw Error('Der Gruppenbeitritt wurde noch nicht bestätigt. Bitte erneut versuchen.');
+}
 async function initLive(){
  try{
-  if(!window.supabase?.createClient) throw Error('Supabase-Bibliothek nicht geladen');
-  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
-  let {data:{session},error:se}=await sb.auth.getSession();if(se)throw se;
+  if(!window.supabase?.createClient)throw Error('Supabase-Bibliothek nicht geladen');
+  if(!sb)sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+  const {data:{session},error}=await sb.auth.getSession();
+  if(error)throw error;
   if(!session){showJoin();return}
-  authUser=session?.user;if(!authUser)throw Error('Anmeldung nicht möglich');
-  const membership=await sb.from('group_members').select('display_name').eq('user_id',authUser.id).maybeSingle();
-  if(membership.error)throw membership.error;
-  groupJoined=!!membership.data;
-  if(!groupJoined){showJoin();return}
-  document.body.classList.add('member-ready');
-  document.getElementById('person').value=membership.data.display_name;
-  state.name=membership.data.display_name;save();showEmailSettings();
-  const own=await sb.from('votes').select('activity_id,choice').eq('user_id',authUser.id);
-  if(own.error)throw own.error;
-  for(const x of own.data||[])state[x.activity_id]=x.choice;
-  save();await refreshVotes();
-  setInterval(refreshVotes,15000);
+  if(!await activateMember())showJoin();
  }catch(e){liveError=e.message||String(e);console.error('Kufstein Live Voting:',e);showLiveError(liveError);render()}
 }
 function showLiveError(message){
@@ -59,55 +76,50 @@ function showJoin(){
  document.getElementById('return-button').onclick=returnWithName;
 }
 async function joinGroup(){
+ if(signInBusy)return;
  const name=document.getElementById('join-name').value.trim(),code=document.getElementById('join-code').value;
- const b=document.getElementById('join-button');b.disabled=true;
- if(!authUser){const anon=await sb.auth.signInAnonymously();if(anon.error){document.getElementById('join-status').textContent=anon.error.message;b.disabled=false;return}authUser=anon.data.user}
- const r=await sb.rpc('join_kufstein_group',{p_code:code,p_name:name});
- b.disabled=false;
- if(r.error){document.getElementById('join-status').textContent=r.error.message;return}
- groupJoined=true;document.body.classList.add('member-ready');state.name=name;showEmailSettings();save();document.getElementById('person').value=name;
- document.getElementById('group-join').remove();
- await refreshVotes();
- const own=await sb.from('votes').select('activity_id,choice').eq('user_id',authUser.id);
- if(!own.error){for(const x of own.data||[])state[x.activity_id]=x.choice;save();render()}
- setInterval(refreshVotes,15000);
-}
-async function returnWithName(){
- const name=document.getElementById('return-name').value.trim();
- const code=document.getElementById('return-code').value;
- const status=document.getElementById('return-status'),button=document.getElementById('return-button');
+ const status=document.getElementById('join-status'),button=document.getElementById('join-button');
  if(!name||!code){status.textContent='Bitte Name und Gruppencode eingeben';return}
- button.disabled=true;status.textContent='Bestehende Stimmen werden geladen …';
+ signInBusy=true;button.disabled=true;status.textContent='Anmeldung wird abgeschlossen …';
  try{
+  const {data:{session},error:sessionError}=await sb.auth.getSession();
+  if(sessionError)throw sessionError;
+  authUser=session?.user||null;
   if(!authUser){
    const {data,error}=await sb.auth.signInAnonymously();
    if(error)throw error;authUser=data.user;
   }
-  const {data,error}=await sb.rpc('recover_kufstein_member',{p_code:code,p_name:name});
+  const {error}=await sb.rpc('join_kufstein_group',{p_code:code,p_name:name});
   if(error)throw error;
-  status.textContent='Anmeldung erfolgreich. '+data+' Stimmen übernommen.';
-  state.name=name;save();location.reload();
+  await completeSignIn();
  }catch(e){status.textContent='Anmeldung fehlgeschlagen: '+(e.message||String(e))}
- finally{button.disabled=false}
+ finally{signInBusy=false;button.disabled=false}
+}
+async function returnWithName(){
+ if(signInBusy)return;
+ const name=document.getElementById('return-name').value.trim(),code=document.getElementById('return-code').value;
+ const status=document.getElementById('return-status'),button=document.getElementById('return-button');
+ if(!name||!code){status.textContent='Bitte Name und Gruppencode eingeben';return}
+ signInBusy=true;button.disabled=true;status.textContent='Bestehende Stimmen werden geladen …';
+ try{
+  const {data:{session},error:sessionError}=await sb.auth.getSession();
+  if(sessionError)throw sessionError;
+  authUser=session?.user||null;
+  if(!authUser){
+   const {data,error}=await sb.auth.signInAnonymously();
+   if(error)throw error;authUser=data.user;
+  }
+  const {error}=await sb.rpc('recover_kufstein_member',{p_code:code,p_name:name});
+  if(error)throw error;
+  await completeSignIn();
+ }catch(e){status.textContent='Anmeldung fehlgeschlagen: '+(e.message||String(e))}
+ finally{signInBusy=false;button.disabled=false}
 }
 async function loginWithEmail(){
  const email=document.getElementById('login-email').value.trim(),status=document.getElementById('login-email-status');
  if(!email){status.textContent='Bitte E-Mail eingeben';return}
  const result=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}});
  status.textContent=result.error?'Anmeldung fehlgeschlagen: '+result.error.message:'Wenn diese E-Mail bereits verknüpft ist, erhältst du einen Anmeldelink.';
-}
-function showEmailSettings(){
- if(document.getElementById('email-settings'))return;
- const el=document.createElement('section');el.id='email-settings';el.className='card';
- el.style='max-width:1100px;margin:16px auto;padding:20px';
- el.innerHTML='<h2>✉️ Wiederanmeldung per E-Mail</h2><p>Optional: Verknüpfe eine E-Mail mit deinem aktuellen Teilnehmerkonto, damit deine Stimmen auch auf anderen Geräten verfügbar bleiben. Bitte verwende dafür die aktuelle Anmeldung.</p><input type="email" id="link-email" placeholder="Deine E-Mail-Adresse"><button id="link-email-button">E-Mail verknüpfen</button><p id="link-email-status"></p>';
- const main=document.querySelector('main');if(main)main.prepend(el);else document.body.append(el);
- document.getElementById('link-email-button').onclick=async()=>{
- const email=document.getElementById('link-email').value.trim(),status=document.getElementById('link-email-status');
- if(!email){status.textContent='Bitte E-Mail eingeben';return}
- const r=await sb.auth.updateUser({email});
- status.textContent=r.error?'Fehler: '+r.error.message:'Bestätigungs-E-Mail prüfen. Nach Bestätigung kannst du dich per E-Mail wieder anmelden.';
- };
 }
 function summary(){return 'Kufstein 28.–29.11.2026 – Abstimmung von '+(state.name||'Unbekannt')+'\n'+events.map(e=>e.title+': '+({yes:'Ja',maybe:'Vielleicht',no:'Nein'}[state[e.id]]||'Offen')).join('\n')}async function exportVote(){const t=summary();try{await navigator.clipboard.writeText(t);document.getElementById('status').textContent='Abstimmung kopiert!'}catch{prompt('Text kopieren:',t)}}function sharePage(){const u=location.protocol==='file:'?'':location.href;if(!u){alert('Bitte die Webseite zuerst online veröffentlichen, damit du einen Link teilen kannst.');return}if(navigator.share){navigator.share({title:'Kufstein 2026',url:u}).catch(()=>{})}else{navigator.clipboard.writeText(u).then(()=>alert('Link kopiert')).catch(()=>prompt('Link:',u))}}function shareCarpool(){window.open('https://wa.me/?text='+encodeURIComponent('Kufstein 28.11.: Wann fahren wir los und wo treffen sich unsere Fahrgemeinschaften?'),'_blank')}function addIdea(){let x=document.getElementById('idea').value.trim();if(!x)return;let a=JSON.parse(localStorage.getItem('kufstein_ideas_v3')||'[]');a.push(x);localStorage.setItem('kufstein_ideas_v3',JSON.stringify(a));document.getElementById('idea').value='';renderIdeas()}function renderIdeas(){if(!document.getElementById('ideas'))return;document.getElementById('ideas').innerHTML=JSON.parse(localStorage.getItem('kufstein_ideas_v3')||'[]').map(x=>'<li>'+x.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"\'":'&#39;'}[c]||c))+'</li>').join('')}function shareIdea(){let x=document.getElementById('idea').value.trim();if(x)window.open('https://wa.me/?text='+encodeURIComponent('Kufstein 2026 – Idee: '+x),'_blank')}function shareWhatsApp(){window.open('https://wa.me/?text='+encodeURIComponent(summary()),'_blank')}
 let taskRows=[],taskBusy=false;
