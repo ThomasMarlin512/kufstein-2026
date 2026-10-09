@@ -18,7 +18,7 @@ button:disabled{opacity:.55;cursor:default}.status{min-height:22px;margin:12px 0
 .ok{color:#92e9bb}.err{color:#ffb5b5}[hidden]{display:none!important}
 details>summary{cursor:pointer;color:#98edff;font-weight:650}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-</head><body><nav><a href="./">← Zurück zur Reise</a><strong>Mein Profil</strong></nav>
+</head><body><nav><a id="profile-back" href="./">← Zurück zur Reise</a><strong>Mein Profil</strong></nav>
 <main><h1>Meine persönlichen Daten</h1><p class="muted">Dein Nickname ist dein Name für die Anmeldung und die Abstimmungen. Vollständiger Name und E-Mail sind nur in deinem eigenen Profil sichtbar.</p>
 <p id="page-status" class="status" role="status" aria-live="polite">Dein Profil wird geladen …</p>
 <button id="retry-load" class="secondary" hidden>Erneut laden</button>
@@ -113,4 +113,4 @@ $('profile-form').onsubmit=saveProfile;
 $('link-email').onclick=linkProfileEmail;
 $('retry-load').onclick=loadProfile;
 loadProfile();
-</script></body></html>
+</script><script>const groupReturn=new URLSearchParams(location.search).get('group_return');if(['/kufstein-2026/gruppe/','/geiladachtzger/'].includes(groupReturn)){const back=document.getElementById('profile-back');back.href=groupReturn;back.textContent='← Zur Gruppe';}</script></body></html>
