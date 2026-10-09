@@ -51,11 +51,12 @@ function showJoin(){
  el=document.createElement('section');el.id='group-join';el.className='card';
  el.style='position:fixed;inset:0;z-index:99999;max-width:none;margin:0;padding:24px;background:rgba(2,13,27,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;overflow:auto';
  document.body.append(el)}
- el.innerHTML='<h2>🔐 Kufstein 2026</h2><p>Wähle, ob du neu dabei bist oder dich wieder anmelden möchtest.</p><div style="width:min(90vw,480px)"><div style="display:flex;gap:8px;margin:16px 0"><button id="tab-new" style="flex:1" type="button">Gruppe beitreten</button><button id="tab-return" class="secondary" style="flex:1" type="button">Anmelden</button></div><div id="join-new-panel"><p>Nur für neue Teilnehmer</p><input id="join-name" maxlength="50" placeholder="Dein Name" value="'+escapeText(state.name||'')+'"><input id="join-code" type="password" placeholder="Gruppencode" style="margin:8px 0"><button id="join-button" style="width:100%">Gruppe beitreten</button><p id="join-status"></p></div><div id="join-return-panel" hidden><p>Du bist schon Mitglied? Melde dich über deine verknüpfte E-Mail an.</p><input id="login-email" type="email" placeholder="Deine E-Mail-Adresse"><button id="login-email-button" style="width:100%;margin-top:8px">Anmeldelink senden</button><p id="login-email-status"></p><small>Ohne zuvor verknüpfte E-Mail ist eine Wiederherstellung des bestehenden Kontos noch nicht möglich. Deine bisherigen Stimmen bleiben gespeichert.</small></div></div>';
+ el.innerHTML='<h2>🔐 Kufstein 2026</h2><p>Wähle, ob du neu dabei bist oder dich wieder anmelden möchtest.</p><div style="width:min(90vw,480px)"><div style="display:flex;gap:8px;margin:16px 0"><button id="tab-new" style="flex:1" type="button">Gruppe beitreten</button><button id="tab-return" class="secondary" style="flex:1" type="button">Anmelden</button></div><div id="join-new-panel"><p>Nur für neue Teilnehmer</p><input id="join-name" maxlength="50" placeholder="Dein Name" value="'+escapeText(state.name||'')+'"><input id="join-code" type="password" placeholder="Gruppencode" style="margin:8px 0"><button id="join-button" style="width:100%">Gruppe beitreten</button><p id="join-status"></p></div><div id="join-return-panel" hidden><p>Mit bestehendem Namen und Gruppencode anmelden:</p><input id="return-name" maxlength="50" placeholder="Dein bisheriger Name" value="'+escapeText(state.name||'')+'"><input id="return-code" type="password" placeholder="Gruppencode" style="margin:8px 0"><button id="return-button" style="width:100%">Mit Name anmelden</button><p id="return-status"></p><hr style="margin:20px 0;border-color:#456"><p>Oder über deine verknüpfte E-Mail:</p><input id="login-email" type="email" placeholder="Deine E-Mail-Adresse"><button id="login-email-button" style="width:100%;margin-top:8px">Anmeldelink senden</button><p id="login-email-status"></p><small>Ohne zuvor verknüpfte E-Mail ist eine Wiederherstellung des bestehenden Kontos noch nicht möglich. Deine bisherigen Stimmen bleiben gespeichert.</small></div></div>';
  document.getElementById('tab-new').onclick=()=>{document.getElementById('join-new-panel').hidden=false;document.getElementById('join-return-panel').hidden=true;document.getElementById('tab-new').classList.remove('secondary');document.getElementById('tab-return').classList.add('secondary')};
  document.getElementById('tab-return').onclick=()=>{document.getElementById('join-new-panel').hidden=true;document.getElementById('join-return-panel').hidden=false;document.getElementById('tab-return').classList.remove('secondary');document.getElementById('tab-new').classList.add('secondary')};
  document.getElementById('join-button').onclick=joinGroup;
  document.getElementById('login-email-button').onclick=loginWithEmail;
+ document.getElementById('return-button').onclick=returnWithName;
 }
 async function joinGroup(){
  const name=document.getElementById('join-name').value.trim(),code=document.getElementById('join-code').value;
@@ -70,6 +71,24 @@ async function joinGroup(){
  const own=await sb.from('votes').select('activity_id,choice').eq('user_id',authUser.id);
  if(!own.error){for(const x of own.data||[])state[x.activity_id]=x.choice;save();render()}
  setInterval(refreshVotes,15000);
+}
+async function returnWithName(){
+ const name=document.getElementById('return-name').value.trim();
+ const code=document.getElementById('return-code').value;
+ const status=document.getElementById('return-status'),button=document.getElementById('return-button');
+ if(!name||!code){status.textContent='Bitte Name und Gruppencode eingeben';return}
+ button.disabled=true;status.textContent='Bestehende Stimmen werden geladen …';
+ try{
+  if(!authUser){
+   const {data,error}=await sb.auth.signInAnonymously();
+   if(error)throw error;authUser=data.user;
+  }
+  const {data,error}=await sb.rpc('recover_kufstein_member',{p_code:code,p_name:name});
+  if(error)throw error;
+  status.textContent='Anmeldung erfolgreich. '+data+' Stimmen übernommen.';
+  state.name=name;save();location.reload();
+ }catch(e){status.textContent='Anmeldung fehlgeschlagen: '+(e.message||String(e))}
+ finally{button.disabled=false}
 }
 async function loginWithEmail(){
  const email=document.getElementById('login-email').value.trim(),status=document.getElementById('login-email-status');
