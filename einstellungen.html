@@ -19,7 +19,7 @@ button:disabled{opacity:.55;cursor:default}.status{min-height:22px;margin:12px 0
 details>summary{cursor:pointer;color:#98edff;font-weight:650}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="stylesheet" href="navigation.css?v=20261010-1"></head><body><nav><a class="home-nav-link" href="/geiladachtzger/" aria-label="Zur Geiladachtzger-Hauptseite"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 10 9-7 9 7v10H15v-7H9v7H3Z"/></svg>Hauptseite</a><a id="profile-back" class="event-home-link" href="./" aria-label="Zur Übersicht von Kufstein 2026"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18M7 15h2m6 0h2m-10 3h2"/></svg>Übersicht</a><strong>Mein Profil</strong></nav>
-<main><h1>Meine persönlichen Daten</h1><p class="muted">Dein Nickname ist dein Name für die Anmeldung und die Abstimmungen. Vollständiger Name und E-Mail sind nur in deinem eigenen Profil sichtbar.</p>
+<main><h1>Meine persönlichen Daten</h1><p class="muted">Bei Abstimmungen wird dein Nickname angezeigt. Anmelden kannst du dich mit Nickname oder vollständigem Namen und dem Gruppencode. Deine E-Mail bleibt privat.</p>
 <p id="page-status" class="status" role="status" aria-live="polite">Dein Profil wird geladen …</p>
 <button id="retry-load" class="secondary" hidden>Erneut laden</button>
 <p id="login-help" hidden><a href="index.html">Zur Anmeldung →</a></p>
@@ -27,8 +27,8 @@ details>summary{cursor:pointer;color:#98edff;font-weight:650}
 <section class="card"><h2>Persönliches Profil</h2>
 <form id="profile-form">
 <label for="full-name">Vollständiger Name</label><input id="full-name" name="full-name" autocomplete="name" minlength="2" maxlength="100" placeholder="Vorname Nachname" required>
-<label for="nickname">Nickname für die Anmeldung</label><input id="nickname" name="nickname" autocomplete="username" minlength="2" maxlength="50" placeholder="Dein Nickname" aria-describedby="nickname-help" required>
-<small id="nickname-help">Muss innerhalb der Gruppe eindeutig sein. Nach einer Änderung meldest du dich mit dem neuen Nickname und dem Gruppencode an.</small>
+<label for="nickname">Nickname für die Anzeige</label><input id="nickname" name="nickname" autocomplete="username" minlength="2" maxlength="50" placeholder="Dein Nickname" aria-describedby="nickname-help" required>
+<small id="nickname-help">Muss innerhalb der Gruppe eindeutig sein. Du kannst dich mit dem Nickname oder deinem vollständigen Namen und dem Gruppencode anmelden.</small>
 <label for="email">E-Mail-Adresse <span class="muted">(optional)</span></label><input id="email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="name@beispiel.at" aria-describedby="email-help">
 <small id="email-help">Wird in deinem Profil gespeichert. Wenn du sie auch zur Anmeldung nutzen möchtest, bestätige sie anschließend unten.</small>
 <button id="save-profile" type="submit">Persönliche Daten speichern</button>
@@ -59,7 +59,7 @@ function fillProfile(profile){
  $('link-email').disabled=!profile.email||!!(sameEmail&&profile.login_email_confirmed);
  if(sameEmail&&profile.login_email_confirmed)status('email-login-state','E-Mail-Anmeldung aktiv für '+profile.login_email);
  else if(profile.login_email&&profile.login_email_confirmed)status('email-login-state','Aktuelle bestätigte Anmeldeadresse: '+profile.login_email+'. Eine andere Profiladresse kannst du unten zusätzlich bestätigen.');
- else status('email-login-state','Du kannst dich mit Nickname und Gruppencode anmelden. Die E-Mail-Anmeldung ist optional und benötigt eine Bestätigung.');
+ else status('email-login-state','Du kannst dich mit Nickname oder vollständigem Namen und Gruppencode anmelden. Die E-Mail-Anmeldung ist optional und benötigt eine Bestätigung.');
  cacheNickname(profile.nickname);
 }
 async function loadProfile(){
@@ -70,7 +70,7 @@ async function loadProfile(){
   if(!profileSb)profileSb=window.supabase.createClient(PROFILE_URL,PROFILE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
   const {data:{session},error}=await profileSb.auth.getSession();
   if(error)throw error;
-  if(!session){$('content').hidden=true;$('login-help').hidden=false;status('page-status','Bitte zuerst mit deinem Nickname und Gruppencode anmelden.',true);return}
+  if(!session){$('content').hidden=true;$('login-help').hidden=false;status('page-status','Bitte zuerst mit deinem Nickname oder vollständigem Namen und Gruppencode anmelden.',true);return}
   const result=await profileSb.rpc('get_my_kufstein_profile');
   if(result.error)throw result.error;
   if(!result.data)throw Error('Dein Profil konnte nicht geladen werden.');
@@ -89,7 +89,7 @@ async function saveProfile(event){
   const result=await profileSb.rpc('save_kufstein_profile',{p_full_name:fullName,p_nickname:nickname,p_email:email});
   if(result.error)throw result.error;
   fillProfile(result.data);
-  status('profile-status','Persönliche Daten gespeichert. Dein Nickname für die nächste Anmeldung: '+result.data.nickname);
+  status('profile-status','Persönliche Daten gespeichert. Anmeldung mit vollständigem Namen oder Nickname: '+result.data.nickname);
  }catch(e){status('profile-status','Nicht gespeichert: '+(e.message||String(e)),true)}
  finally{profileBusy=false;$('save-profile').disabled=false;
   const p=currentProfile;$('link-email').disabled=!p?.email||!!(p.login_email_confirmed&&p.login_email?.toLowerCase()===p.email.toLowerCase());
@@ -106,7 +106,7 @@ async function linkProfileEmail(){
   status('email-status','Bestätigung angefordert. Bitte den Link in deinem E-Mail-Postfach öffnen. Dein Profil ist bereits gespeichert.');
  }catch(e){
   const message=e.message||String(e);
-  status('email-status',/already been registered|already registered|already exists|email_exists/i.test(message)?'Deine Profiladresse ist gespeichert. Für diese E-Mail besteht bereits ein anderes Anmeldekonto. Nutze vorerst deinen Nickname und Gruppencode.':'Die E-Mail-Bestätigung konnte nicht angefordert werden: '+message,true);
+  status('email-status',/already been registered|already registered|already exists|email_exists/i.test(message)?'Deine Profiladresse ist gespeichert. Für diese E-Mail besteht bereits ein anderes Anmeldekonto. Nutze vorerst deinen Nickname oder vollständigen Namen und den Gruppencode.':'Die E-Mail-Bestätigung konnte nicht angefordert werden: '+message,true);
  }finally{profileBusy=false;$('link-email').disabled=false;$('save-profile').disabled=false}
 }
 $('profile-form').onsubmit=saveProfile;
@@ -114,3 +114,4 @@ $('link-email').onclick=linkProfileEmail;
 $('retry-load').onclick=loadProfile;
 loadProfile();
 </script><script>const groupReturn=new URLSearchParams(location.search).get('group_return');if(['/kufstein-2026/gruppe/','/geiladachtzger/'].includes(groupReturn)){const back=document.getElementById('profile-back');back.hidden=true;}</script></body></html>
+

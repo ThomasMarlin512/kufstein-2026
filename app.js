@@ -68,10 +68,10 @@ function showJoin(){
  if(!el){el=document.createElement('section');el.id='group-join';el.className='card';document.body.append(el)}
  el.innerHTML=`<div class="auth-box">
  <p class="auth-brand">KUFSTEIN 2026</p><h2>Anmelden</h2>
- <p class="auth-intro">Mit deinem Nickname und dem Gruppencode zur Reiseplanung.</p>
+ <p class="auth-intro">Mit Nickname oder vollständigem Namen und dem Gruppencode anmelden.</p>
  <form id="return-form">
- <label for="return-name">Nickname</label><input id="return-name" maxlength="50" autocomplete="username" placeholder="Dein Nickname" value="${escapeText(state.name||'')}" required>
- <small>Bis du einen Nickname festlegst, funktioniert dein bisheriger Name.</small>
+ <label for="return-name">Nickname oder vollständiger Name</label><input id="return-name" maxlength="100" autocomplete="username" placeholder="Nickname oder vollständiger Name" value="${escapeText(state.name||'')}" required>
+ <small>Beides führt zu deinem bestehenden Konto. Groß- und Kleinschreibung spielen keine Rolle.</small>
  <label for="return-code">Gruppencode</label><input id="return-code" type="password" autocomplete="current-password" required>
  <button id="return-button" type="submit">Anmelden</button><p id="return-status" class="auth-status" role="status" aria-live="polite"></p>
  </form>
@@ -113,7 +113,7 @@ async function returnWithName(){
  if(signInBusy)return;
  const name=document.getElementById('return-name').value.trim(),code=document.getElementById('return-code').value;
  const status=document.getElementById('return-status'),button=document.getElementById('return-button');
- if(!name||!code){status.textContent='Bitte Nickname und Gruppencode eingeben';return}
+ if(!name||!code){status.textContent='Bitte Nickname oder vollständigen Namen und Gruppencode eingeben';return}
  signInBusy=true;button.disabled=true;status.textContent='Bestehende Stimmen werden geladen …';
  try{
   const {data:{session},error:sessionError}=await sb.auth.getSession();
