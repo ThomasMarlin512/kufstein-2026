@@ -18,7 +18,7 @@ button:disabled{opacity:.55;cursor:default}.status{min-height:22px;margin:12px 0
 .ok{color:#92e9bb}.err{color:#ffb5b5}[hidden]{display:none!important}
 details>summary{cursor:pointer;color:#98edff;font-weight:650}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-</head><body><nav><a id="profile-back" href="./">← Zurück zur Reise</a><strong>Mein Profil</strong></nav>
+<link rel="stylesheet" href="navigation.css?v=20261010-1"></head><body><nav><a class="home-nav-link" href="/geiladachtzger/" aria-label="Zur Geiladachtzger-Hauptseite"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 10 9-7 9 7v10H15v-7H9v7H3Z"/></svg>Hauptseite</a><a id="profile-back" class="event-home-link" href="./" aria-label="Zur Übersicht von Kufstein 2026"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18M7 15h2m6 0h2m-10 3h2"/></svg>Übersicht</a><strong>Mein Profil</strong></nav>
 <main><h1>Meine persönlichen Daten</h1><p class="muted">Dein Nickname ist dein Name für die Anmeldung und die Abstimmungen. Vollständiger Name und E-Mail sind nur in deinem eigenen Profil sichtbar.</p>
 <p id="page-status" class="status" role="status" aria-live="polite">Dein Profil wird geladen …</p>
 <button id="retry-load" class="secondary" hidden>Erneut laden</button>
@@ -113,4 +113,4 @@ $('profile-form').onsubmit=saveProfile;
 $('link-email').onclick=linkProfileEmail;
 $('retry-load').onclick=loadProfile;
 loadProfile();
-</script><script>const groupReturn=new URLSearchParams(location.search).get('group_return');if(['/kufstein-2026/gruppe/','/geiladachtzger/'].includes(groupReturn)){const back=document.getElementById('profile-back');back.href=groupReturn;back.textContent='← Zur Gruppe';}</script></body></html>
+</script><script>const groupReturn=new URLSearchParams(location.search).get('group_return');if(['/kufstein-2026/gruppe/','/geiladachtzger/'].includes(groupReturn)){const back=document.getElementById('profile-back');back.hidden=true;}</script></body></html>

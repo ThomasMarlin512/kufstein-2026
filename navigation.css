@@ -1,0 +1,10 @@
+/* Shared destinations: house = group hub, calendar = this event. */
+nav .home-nav-link{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:9px 12px;border:1px solid #527789;border-radius:10px;color:#e3f9fc;text-decoration:none;white-space:nowrap;font-family:inherit;font-size:13px;font-weight:750;flex:0 0 auto}
+nav .home-nav-link svg,nav .event-home-link svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+nav .event-home-link{display:inline-flex;align-items:center;gap:7px;min-height:44px;text-decoration:none}
+nav .home-nav-link:focus-visible,nav .event-home-link:focus-visible{outline:2px solid #c6fff1;outline-offset:3px}
+nav .home-nav-link:hover{background:#164052}
+@media(max-width:700px){nav .home-nav-link{padding:8px 10px;font-size:12px}.nav-inner{gap:10px}.nav-links{overflow:auto;min-width:0}.nav-links a{min-height:40px;display:inline-flex;align-items:center;white-space:nowrap}}
+
+nav a[hidden]{display:none!important}@media(max-width:700px){body>nav:has(#profile-back){flex-wrap:wrap}}
+
