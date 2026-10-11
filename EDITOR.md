@@ -41,3 +41,17 @@ the number of children and would overlap or be clipped.
 
 Show the authorized activity-delete button only while Bearbeiten is active.
 Fertig hides it again. Preserve the confirmation dialog and admin-only policy.
+
+Structured activity editor (prepared; deployment pending): activity-editor.js adds
+title, link, description, trip-day selection and Von/Bis with optional next-day
+ending. It uses trip_activity_details and save_kufstein_activity, with admin-only
+server checks and revision conflicts. Keep legacy activity IDs and votes; never
+silently update the fixed itinerary or reservations. Render new activity text
+escaped. Normal view has no activity-edit or delete controls. In edit mode a
+single Aktivität bearbeiten control owns time and description; old text pencils
+remain for costs and other text. Preserve drafts on validation/save errors.
+
+Deployment depends on the shared repository migration
+20261011212043_activity_fields_and_trip_day_selection.sql. Automatic approval review
+blocked its production application; explicit user approval is still required.
+Do not deploy this UI until that migration and its rolled-back SQL fixtures pass.

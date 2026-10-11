@@ -15,7 +15,7 @@
     document.body.classList.toggle('is-editing', editing);
   }
   toggle?.addEventListener('click', () => {
-    if (busy || dialog.open) return;
+    if (busy || dialog.open || window.tripActivityEditor?.isOpen()) return;
     editing = allowed && !editing;
     refresh();
   });
@@ -58,6 +58,9 @@
     syncMode();
     document.querySelectorAll('[data-edit-key]').forEach(node => {
       const key = node.dataset.editKey;
+      if(window.tripActivityEditor?.ownsField(key)){
+        node.querySelectorAll('.edit-text-button').forEach(button=>button.remove());node.classList.remove('editable-text');return;
+      }
       if (!defaults.has(key)) defaults.set(key, {html: node.innerHTML, text: markdown(node)});
       const record = records.get(key);
       if (record?.content != null) renderText(node, record.content);
@@ -73,6 +76,7 @@
         button.addEventListener('click', () => open(key)); node.append(button);
       }
     });
+    window.tripActivityEditor?.refresh();
   }
   async function load() {
     const result = await sb.from('trip_text_content').select('content_key,content,revision').eq('site_id', 'kufstein-2026');
@@ -113,7 +117,7 @@
     if (active) [...document.querySelectorAll('[data-edit-key]')].find(node => node.dataset.editKey === active.key)?.querySelector('.edit-text-button')?.focus();
   });
   dialog.addEventListener('cancel', e => { if (busy) e.preventDefault(); });
-  window.tripTextEditor = {refresh, authorize};
+  window.tripTextEditor = {refresh, authorize, canEdit:()=>allowed};
   if (typeof sb !== 'undefined' && sb) {
     load().catch(() => { status.textContent = 'Gespeicherte Texte konnten nicht geladen werden. Bitte neu laden.'; });
     authorize();
