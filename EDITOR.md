@@ -19,3 +19,12 @@ Auth, votes, member management and shared event templates stay independent.
 For UI checks: save/cancel, failed-save draft retention, reset, unsafe link/HTML
 handling, dynamic card rerendering. Test admin/non-admin/anon permissions and
 optimistic revision conflicts inside a rolled-back database transaction.
+
+Activity removal: the administrator returned by get_group_member_directory can
+remove a built-in Kufstein activity from the voting cards. trip_activity_removals
+stores the removal, enforced by admin-only INSERT RLS; removed cards cannot
+receive votes. Keep the static itinerary, reservations and editable text keys
+intact, and state that clearly before removal. This legacy trip has no
+member-created activity records; shared trips use group_program_items and allow
+creator/admin deletion with cascading votes and links. Test only rolled-back
+fixtures, never remove real activities for verification.
