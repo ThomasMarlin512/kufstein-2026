@@ -38,3 +38,6 @@ Keep failures visible in that dialog and success feedback beside the activity
 cards. Use two wide columns on desktop and one on phones via trip-navigation.css.
 Do not use fixed subgrid row spans for activity content: admin controls change
 the number of children and would overlap or be clipped.
+
+Show the authorized activity-delete button only while Bearbeiten is active.
+Fertig hides it again. Preserve the confirmation dialog and admin-only policy.
