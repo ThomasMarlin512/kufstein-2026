@@ -2,9 +2,7 @@
 (() => {
   'use strict';
   const records = new Map(), defaults = new Map();
-  let allowed = false, editing = false, busy = false, active = null;
-  const toolbar = document.getElementById('text-editor-toolbar');
-  const toggle = document.getElementById('toggle-text-editor');
+  let allowed = false, busy = false, active = null;
   const status = document.getElementById('text-editor-status');
   const dialog = document.createElement('dialog');
   dialog.className = 'text-edit-dialog';
@@ -47,14 +45,16 @@
       const record = records.get(key);
       if (record?.content != null) renderText(node, record.content);
       else if (record) node.innerHTML = defaults.get(key).html;
-      node.classList.toggle('editable-text', editing);
-      let button = node.nextElementSibling;
-      if (!button?.classList.contains('edit-text-button')) {
-        button = document.createElement('button'); button.type = 'button'; button.className = 'edit-text-button secondary';
-        button.textContent = '✎ Bearbeiten'; button.setAttribute('aria-label', 'Text bearbeiten: ' + defaults.get(key).text.slice(0, 65));
-        button.addEventListener('click', () => open(key)); node.after(button);
+      node.querySelectorAll('.edit-text-button').forEach(button => button.remove());
+      node.classList.toggle('editable-text', allowed && !!record);
+      if (allowed && record) {
+        const button = document.createElement('button');
+        button.type = 'button'; button.className = 'edit-text-button';
+        button.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="m15 5 4 4M4 20l4-1 12-12a2.8 2.8 0 0 0-4-4L4 15l-1 6Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        button.title = 'Text bearbeiten';
+        button.setAttribute('aria-label', 'Text bearbeiten: ' + defaults.get(key).text.slice(0, 65));
+        button.addEventListener('click', () => open(key)); node.append(button);
       }
-      button.hidden = !editing || !record;
     });
   }
   async function load() {
@@ -68,8 +68,8 @@
       const result = await sb.rpc('get_group_member_directory');
       allowed = !result.error && result.data?.can_manage === true;
     } catch { allowed = false; }
-    toolbar.hidden = !allowed;
-    if (!allowed) { editing = false; refresh(); }
+    refresh();
+    if (!allowed && dialog.open) dialog.close();
   }
   function open(key) {
     if (!allowed || busy || !records.has(key)) return;
@@ -85,16 +85,16 @@
       const result = await sb.rpc('save_trip_text', {p_site_id: 'kufstein-2026', p_content_key: active.key, p_content: reset ? null : input.value, p_revision: active.revision});
       if (result.error) throw result.error;
       records.set(active.key, result.data); refresh(); dialog.close(); status.textContent = 'Gespeichert – für alle sichtbar.';
+      setTimeout(() => { status.textContent = ''; }, 4000);
     } catch (e) { error.textContent = e.message || 'Speichern fehlgeschlagen. Dein Text bleibt erhalten.'; }
     finally { busy = false; input.disabled = false; dialog.querySelectorAll('button').forEach(b => b.disabled = false); }
   }
-  toggle.addEventListener('click', async () => {
-    try { await load(); editing = !editing; toggle.setAttribute('aria-pressed', String(editing)); toggle.textContent = editing ? '✓ Bearbeitung beenden' : '✎ Texte bearbeiten'; status.textContent = editing ? 'Beim gewünschten Text auf Bearbeiten tippen.' : ''; refresh(); }
-    catch { status.textContent = 'Texte konnten nicht geladen werden. Bitte erneut versuchen.'; }
-  });
   dialog.querySelector('form').addEventListener('submit', e => { e.preventDefault(); save(); });
   dialog.querySelector('[data-cancel]').addEventListener('click', () => dialog.close());
   dialog.querySelector('[data-reset]').addEventListener('click', () => { if (confirm('Diesen Text auf das Original zurücksetzen?')) save(true); });
+  dialog.addEventListener('close', () => {
+    if (active) [...document.querySelectorAll('[data-edit-key]')].find(node => node.dataset.editKey === active.key)?.querySelector('.edit-text-button')?.focus();
+  });
   dialog.addEventListener('cancel', e => { if (busy) e.preventDefault(); });
   window.tripTextEditor = {refresh, authorize};
   if (typeof sb !== 'undefined' && sb) {

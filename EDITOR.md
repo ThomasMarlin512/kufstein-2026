@@ -5,7 +5,8 @@
 Keep existing keys stable when moving or inserting paragraphs; never renumber them.
 Activity keys are shared between index.html and abstimmung.html/app.js.
 
-The toolbar is visible only to the existing group administrator. Server-side
+A small pencil at the top right of each text field is visible only to the existing
+group administrator. Its touch target is 44 × 44 pixels; no global edit toggle is needed. Server-side
 `group_private.is_admin()` is authoritative; never authorize by a display name.
 The public RPC checks revisions to reject stale edits. Direct table mutations
 are not granted to browser roles. Published content can be read by all visitors.
