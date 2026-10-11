@@ -6,8 +6,8 @@ Keep existing keys stable when moving or inserting paragraphs; never renumber th
 Activity keys are shared between index.html and abstimmung.html/app.js.
 
 A small pencil at the top right of each text field is visible only to the existing
-group administrator after enabling Bearbeitungsmodus. Start in reading mode with
-no pencils or editor padding. Bearbeitung beenden returns to reading mode; saved
+group administrator after enabling Bearbeiten beside the settings gear in the upper navigation. Start in reading mode with
+no pencils or editor padding. Fertig returns to reading mode; saved
 text overrides remain visible in both modes. Keep this mode local to the page,
 reset it when permission is lost, and preserve it across activity rerenders.
 Its touch target is 44 × 44 pixels. Server-side
