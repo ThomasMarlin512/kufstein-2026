@@ -2,7 +2,23 @@
 (() => {
   'use strict';
   const records = new Map(), defaults = new Map();
-  let allowed = false, busy = false, active = null;
+  let allowed = false, busy = false, active = null, editing = false;
+  const toggle = document.getElementById('edit-mode-toggle'), bar = document.getElementById('edit-mode-bar');
+  function syncMode() {
+    if (!allowed) editing = false;
+    if (bar) bar.hidden = !allowed;
+    if (toggle) {
+      toggle.hidden = !allowed;
+      toggle.setAttribute('aria-pressed', String(editing));
+      toggle.textContent = editing ? 'Bearbeitung beenden' : 'Bearbeitungsmodus';
+    }
+    document.body.classList.toggle('is-editing', editing);
+  }
+  toggle?.addEventListener('click', () => {
+    if (busy || dialog.open) return;
+    editing = allowed && !editing;
+    refresh();
+  });
   const status = document.getElementById('text-editor-status');
   const dialog = document.createElement('dialog');
   dialog.className = 'text-edit-dialog';
@@ -39,6 +55,7 @@
     node.append(document.createTextNode(text.slice(cursor)));
   }
   function refresh() {
+    syncMode();
     document.querySelectorAll('[data-edit-key]').forEach(node => {
       const key = node.dataset.editKey;
       if (!defaults.has(key)) defaults.set(key, {html: node.innerHTML, text: markdown(node)});
@@ -46,8 +63,8 @@
       if (record?.content != null) renderText(node, record.content);
       else if (record) node.innerHTML = defaults.get(key).html;
       node.querySelectorAll('.edit-text-button').forEach(button => button.remove());
-      node.classList.toggle('editable-text', allowed && !!record);
-      if (allowed && record) {
+      node.classList.toggle('editable-text', allowed && editing && !!record);
+      if (allowed && editing && record) {
         const button = document.createElement('button');
         button.type = 'button'; button.className = 'edit-text-button';
         button.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="m15 5 4 4M4 20l4-1 12-12a2.8 2.8 0 0 0-4-4L4 15l-1 6Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -72,7 +89,7 @@
     if (!allowed && dialog.open) dialog.close();
   }
   function open(key) {
-    if (!allowed || busy || !records.has(key)) return;
+    if (!allowed || !editing || busy || !records.has(key)) return;
     active = {key, revision: records.get(key).revision};
     input.value = records.get(key).content ?? defaults.get(key).text;
     error.textContent = ''; dialog.showModal(); input.focus();
