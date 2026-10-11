@@ -19,6 +19,10 @@ nav .nav-links a[aria-current],.trip-nav .nav-more:has(a[aria-current])>summary{
 nav .home-nav-link,.trip-settings{border-color:transparent}
 
 /* Keep the excursion image visible behind the heading and album shortcut. */
-header#start{background-image:linear-gradient(0deg,rgba(3,27,44,.86),rgba(5,30,49,.22)),url('/geiladachtzger/assets/covers/kufstein.jpg');background-position:center;background-size:cover}
-
-header#start{background-image:linear-gradient(0deg,rgba(3,27,44,.86),rgba(5,30,49,.22)),url('/geiladachtzger/assets/covers/kufstein-1600.webp')}@media(max-width:700px){header#start{background-image:linear-gradient(0deg,rgba(3,27,44,.86),rgba(5,30,49,.22)),url('/geiladachtzger/assets/covers/kufstein-960.webp')}}
+/* Cover layers stay visible; the original image is retried after a load error. */
+header#start{background:#031b2c;overflow:hidden}
+header#start>.trip-cover-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none}
+header#start:after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(0deg,rgba(3,27,44,.86),rgba(5,30,49,.22))}
+header#start:before{z-index:2}
+header#start>:not(.trip-cover-image){position:relative;z-index:2}
+header#start>.trip-cover-credit{font-size:10px;color:#d3e3ea;margin-top:14px;z-index:3}
