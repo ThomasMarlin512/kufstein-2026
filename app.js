@@ -22,6 +22,7 @@ async function activateMember(){
  document.getElementById('live-error')?.remove();
  document.body.classList.add('member-ready');
  liveError='';
+ window.tripTextEditor?.authorize();
  await refreshVotes();
  if(!liveRefreshTimer)liveRefreshTimer=setInterval(refreshVotes,15000);
  return true;
@@ -62,7 +63,7 @@ async function vote(id,v){
  if(result.error){alert('Stimme nicht gespeichert: '+result.error.message);return}
  state[id]=v;save();await refreshVotes();
 }function voteOverview(e){const rows=namedVotes[e.id]||[];const groups=[['yes','👍 Ja'],['maybe','🤔 Vielleicht'],['no','👎 Nein']];return '<div class="vote-overview">'+groups.map(([v,label])=>{const names=rows.filter(x=>x.choice===v).map(x=>escapeText(x.name));const pct=rows.length?Math.round(names.length/rows.length*100):0;return '<div class="vote-group '+v+'"><b>'+label+' <span>'+names.length+' · '+pct+'%</span></b><div class="vote-track"><div class="vote-fill" style="width:'+pct+'%"></div></div><div class="vote-names">'+(names.length?names.map(n=>'<span class="vote-name">'+n+'</span>').join(''):'<span class="vote-empty">Noch niemand</span>')+'</div></div>'}).join('')+'</div>'}
-function render(){document.getElementById('cards').innerHTML=events.map(e=>`<article class="card"><img class="photo" src="${e.photo}" alt="${escapeText(e.photoAlt)}" loading="lazy"><div class="card-content"><span class="pill">${e.time}</span><h3>${e.icon} ${e.title}</h3><p class="price">${e.cost}</p><p>${e.desc}</p><a href="${e.url}" target="_blank" rel="noopener">Weitere Infos ↗</a><div class="vote">${[['yes','👍 Ja'],['maybe','🤔 Vielleicht'],['no','👎 Nein']].map(([v,label])=>`<button class="${state[e.id]===v?'selected':''}" onclick="vote('${e.id}','${v}')">${label}</button>`).join('')}</div><small>${state[e.id]?'Deine Stimme: '+({yes:'Ja',maybe:'Vielleicht',no:'Nein'}[state[e.id]]):'Noch nicht abgestimmt'} · Live: 👍 ${(liveCounts[e.id]||{}).yes||0} · 🤔 ${(liveCounts[e.id]||{}).maybe||0} · 👎 ${(liveCounts[e.id]||{}).no||0}</small><details class="vote-details"><summary>📊 Abstimmung ansehen</summary>${voteOverview(e)}</details><div class="photo-caption">Foto: <a href="${escapeText(e.photoSource)}" target="_blank" rel="noopener noreferrer">${escapeText(e.photoCredit)}</a></div></div></article>`).join('')}function escapeText(x){return String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function render(){document.getElementById('cards').innerHTML=events.map(e=>`<article class="card"><img class="photo" src="${e.photo}" alt="${escapeText(e.photoAlt)}" loading="lazy"><div class="card-content"><span class="pill" data-edit-key="activity-${e.id}-time">${e.time}</span><h3>${e.icon} ${e.title}</h3><p class="price" data-edit-key="activity-${e.id}-cost">${e.cost}</p><p data-edit-key="activity-${e.id}-description">${e.desc}</p><a href="${e.url}" target="_blank" rel="noopener">Weitere Infos ↗</a><div class="vote">${[['yes','👍 Ja'],['maybe','🤔 Vielleicht'],['no','👎 Nein']].map(([v,label])=>`<button class="${state[e.id]===v?'selected':''}" onclick="vote('${e.id}','${v}')">${label}</button>`).join('')}</div><small>${state[e.id]?'Deine Stimme: '+({yes:'Ja',maybe:'Vielleicht',no:'Nein'}[state[e.id]]):'Noch nicht abgestimmt'} · Live: 👍 ${(liveCounts[e.id]||{}).yes||0} · 🤔 ${(liveCounts[e.id]||{}).maybe||0} · 👎 ${(liveCounts[e.id]||{}).no||0}</small><details class="vote-details"><summary>📊 Abstimmung ansehen</summary>${voteOverview(e)}</details><div class="photo-caption">Foto: <a href="${escapeText(e.photoSource)}" target="_blank" rel="noopener noreferrer">${escapeText(e.photoCredit)}</a></div></div></article>`).join('');window.tripTextEditor?.refresh()}function escapeText(x){return String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function showJoin(){
  let el=document.getElementById('group-join');
  if(!el){el=document.createElement('section');el.id='group-join';el.className='card';document.body.append(el)}
@@ -164,3 +165,4 @@ async function setTask(index,completed){
 }
 
 render();renderIdeas();initLive();
+
