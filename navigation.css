@@ -17,3 +17,6 @@ header#start{min-height:380px;padding-top:70px;padding-bottom:36px}header#start 
 nav .nav-links a,.trip-nav .nav-more>summary{border:1px solid transparent;background:#12364a;color:#d6edf3;border-radius:8px;padding:8px 10px}
 nav .nav-links a[aria-current],.trip-nav .nav-more:has(a[aria-current])>summary{border-color:#8be4df;background:#1b3e50;color:#eafffc}
 nav .home-nav-link,.trip-settings{border-color:transparent}
+
+/* Keep the excursion image visible behind the heading and album shortcut. */
+header#start{background-image:linear-gradient(0deg,rgba(3,27,44,.86),rgba(5,30,49,.22)),url('/geiladachtzger/assets/covers/kufstein.jpg');background-position:center;background-size:cover}
