@@ -2,7 +2,7 @@ const events=[{id:'festung',photo:"https://presse.kufstein.com/media/zoombilder/
 const SUPABASE_KEY='sb_publishable_4MsQNsSWj2VXmONSNim-zg__T2QeLV0';
 let sb=null, authUser=null, liveCounts={}, liveError='', namedVotes={}, members={}, groupJoined=false;
 let liveRefreshTimer=null, signInBusy=false;
-let removedActivityIds=new Set(),canDeleteActivities=false,kufDeleteBusy=false;
+let removedActivityIds=new Set(),canDeleteActivities=false,kufDeleteBusy=false,pendingActivityDelete=null;
 async function activateMember(){
  const {data:{session},error:sessionError}=await sb.auth.getSession();
  if(sessionError)throw sessionError;
@@ -62,19 +62,46 @@ async function refreshVotes(){
  for(const x of r.data||[]){let c=liveCounts[x.activity_id]||(liveCounts[x.activity_id]={yes:0,maybe:0,no:0});if(c[x.choice]!==undefined)c[x.choice]++;(namedVotes[x.activity_id]||(namedVotes[x.activity_id]=[])).push({name:members[x.user_id]||'Unbekannt',choice:x.choice})}
  render();await refreshTasks();
 }
-async function deleteActivity(id){
+function activityDeleteDialog(){
+ let dialog=document.getElementById('activity-delete-dialog');
+ if(dialog)return dialog;
+ dialog=document.createElement('dialog');dialog.id='activity-delete-dialog';dialog.className='activity-delete-dialog';
+ dialog.setAttribute('aria-labelledby','activity-delete-heading');dialog.setAttribute('aria-describedby','activity-delete-description');
+ dialog.innerHTML='<form id="activity-delete-form"><h2 id="activity-delete-heading">Aktivität entfernen?</h2><p id="activity-delete-description">Die Aktivität wird aus den Aktivitäten und der Abstimmung entfernt. Der feste Kufstein-Reiseplan und bestehende Reservierungen bleiben bestehen.</p><p id="activity-delete-error" role="alert"></p><div class="activity-delete-actions"><button type="button" class="secondary" id="cancel-activity-delete">Abbrechen</button><button type="submit" class="activity-delete-confirm">Aktivität entfernen</button></div></form>';
+ document.body.append(dialog);
+ document.getElementById('activity-delete-form').addEventListener('submit',confirmActivityDeletion);
+ document.getElementById('cancel-activity-delete').addEventListener('click',()=>{if(!kufDeleteBusy)dialog.close();});
+ dialog.addEventListener('cancel',e=>{if(kufDeleteBusy)e.preventDefault();});
+ dialog.addEventListener('close',()=>{
+  const id=pendingActivityDelete;pendingActivityDelete=null;
+  const button=[...document.querySelectorAll('[data-delete-activity]')].find(b=>b.dataset.deleteActivity===id);
+  if(button)button.focus();else document.querySelector('#aktivitaeten h2')?.focus({preventScroll:true});
+ });
+ return dialog;
+}
+function deleteActivity(id){
  const item=events.find(e=>e.id===id);
  if(!item||!canDeleteActivities||!sb||!authUser||!groupJoined||kufDeleteBusy||removedActivityIds.has(id))return;
- if(!confirm('„'+item.title+'“ aus den Aktivitäten und der Abstimmung entfernen? Der feste Kufstein-Reiseplan und bestehende Reservierungen bleiben bestehen.'))return;
- kufDeleteBusy=true;render();
+ const dialog=activityDeleteDialog();pendingActivityDelete=id;
+ document.getElementById('activity-delete-heading').textContent='„'+item.title+'“ entfernen?';
+ document.getElementById('activity-delete-error').textContent='';dialog.showModal();document.getElementById('cancel-activity-delete').focus();
+}
+async function confirmActivityDeletion(e){
+ e.preventDefault();if(kufDeleteBusy||!pendingActivityDelete)return;
+ const id=pendingActivityDelete,item=events.find(activity=>activity.id===id),errorBox=document.getElementById('activity-delete-error');
+ if(!item||!canDeleteActivities||!sb||!authUser||!groupJoined){errorBox.textContent='Die Löschberechtigung konnte nicht bestätigt werden. Bitte die Seite neu laden.';return;}
+ kufDeleteBusy=true;errorBox.textContent='Wird entfernt …';
+ document.getElementById('activity-delete-form').querySelectorAll('button').forEach(b=>{b.disabled=true;});
  try{
   const result=await sb.from('trip_activity_removals').insert({site_id:'kufstein-2026',activity_id:id,removed_by:authUser.id}).select('activity_id').single();
-  if(result.error)throw result.error;
-  if(result.data?.activity_id!==id)throw Error('Keine Löschberechtigung.');
-  removedActivityIds.add(id);delete state[id];save();
-  document.getElementById('status').textContent='Aktivität aus der Abstimmung entfernt.';
- }catch(error){document.getElementById('status').textContent='Nicht gelöscht: '+error.message;}
- finally{kufDeleteBusy=false;render();}
+  if(result.error&&result.error.code!=='23505')throw result.error;
+  if(!result.error&&result.data?.activity_id!==id)throw Error('Keine Löschberechtigung.');
+  removedActivityIds.add(id);delete state[id];save();render();
+  document.getElementById('activity-delete-dialog').close();
+  const notice=document.getElementById('activity-status')||document.getElementById('status');
+  if(notice)notice.textContent='„'+item.title+'“ wurde aus der Abstimmung entfernt.';
+ }catch(error){errorBox.textContent='Nicht entfernt: '+error.message;}
+ finally{kufDeleteBusy=false;document.getElementById('activity-delete-form').querySelectorAll('button').forEach(b=>{b.disabled=false;});}
 }
 async function vote(id,v){
  if(removedActivityIds.has(id))return;
@@ -83,7 +110,7 @@ async function vote(id,v){
  if(result.error){alert('Stimme nicht gespeichert: '+result.error.message);return}
  state[id]=v;save();await refreshVotes();
 }function voteOverview(e){const rows=namedVotes[e.id]||[];const groups=[['yes','👍 Ja'],['maybe','🤔 Vielleicht'],['no','👎 Nein']];return '<div class="vote-overview">'+groups.map(([v,label])=>{const names=rows.filter(x=>x.choice===v).map(x=>escapeText(x.name));const pct=rows.length?Math.round(names.length/rows.length*100):0;return '<div class="vote-group '+v+'"><b>'+label+' <span>'+names.length+' · '+pct+'%</span></b><div class="vote-track"><div class="vote-fill" style="width:'+pct+'%"></div></div><div class="vote-names">'+(names.length?names.map(n=>'<span class="vote-name">'+n+'</span>').join(''):'<span class="vote-empty">Noch niemand</span>')+'</div></div>'}).join('')+'</div>'}
-function render(){const container=document.getElementById('cards');const opened=new Set([...container.querySelectorAll('details[open][data-program-detail]')].map(n=>n.dataset.programDetail));container.innerHTML=events.filter(e=>!removedActivityIds.has(e.id)).map(e=>`<article class="card"><img class="photo" src="${e.photo}" alt="${escapeText(e.photoAlt)}" loading="lazy"><div class="card-content"><span class="pill" data-edit-key="activity-${e.id}-time">${e.time}</span><h3>${e.icon} ${e.title}</h3><p class="price" data-edit-key="activity-${e.id}-cost">${e.cost}</p><p data-edit-key="activity-${e.id}-description">${e.desc}</p><a href="${e.url}" target="_blank" rel="noopener">Weitere Infos ↗</a><div class="vote">${[['yes','👍 Ja'],['maybe','🤔 Vielleicht'],['no','👎 Nein']].map(([v,label])=>`<button class="${state[e.id]===v?'selected':''}" onclick="vote('${e.id}','${v}')">${label}</button>`).join('')}</div><small>${state[e.id]?'Deine Stimme: '+({yes:'Ja',maybe:'Vielleicht',no:'Nein'}[state[e.id]]):'Noch nicht abgestimmt'} · Live: 👍 ${(liveCounts[e.id]||{}).yes||0} · 🤔 ${(liveCounts[e.id]||{}).maybe||0} · 👎 ${(liveCounts[e.id]||{}).no||0}</small><details class="vote-details" data-program-detail="${e.id}"><summary>📊 Abstimmung ansehen</summary>${voteOverview(e)}</details>${canDeleteActivities?`<button type="button" class="activity-delete" onclick="deleteActivity('${e.id}')" ${kufDeleteBusy?'disabled':''} aria-label="${escapeText('Aktivität löschen: '+e.title)}">Aktivität löschen</button>`:''}<div class="photo-caption">Foto: <a href="${escapeText(e.photoSource)}" target="_blank" rel="noopener noreferrer">${escapeText(e.photoCredit)}</a></div></div></article>`).join('')||'<p class="muted">Keine Aktivitäten zur Abstimmung.</p>';container.querySelectorAll('[data-program-detail]').forEach(n=>{n.open=opened.has(n.dataset.programDetail);});window.tripTextEditor?.refresh()}function escapeText(x){return String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function render(){const container=document.getElementById('cards');const opened=new Set([...container.querySelectorAll('details[open][data-program-detail]')].map(n=>n.dataset.programDetail));container.innerHTML=events.filter(e=>!removedActivityIds.has(e.id)).map(e=>`<article class="card"><img class="photo" src="${e.photo}" alt="${escapeText(e.photoAlt)}" loading="lazy"><div class="card-content"><span class="pill" data-edit-key="activity-${e.id}-time">${e.time}</span><h3>${e.icon} ${e.title}</h3><p class="price" data-edit-key="activity-${e.id}-cost">${e.cost}</p><p data-edit-key="activity-${e.id}-description">${e.desc}</p><a href="${e.url}" target="_blank" rel="noopener">Weitere Infos ↗</a><div class="vote">${[['yes','👍 Ja'],['maybe','🤔 Vielleicht'],['no','👎 Nein']].map(([v,label])=>`<button class="${state[e.id]===v?'selected':''}" onclick="vote('${e.id}','${v}')">${label}</button>`).join('')}</div><small>${state[e.id]?'Deine Stimme: '+({yes:'Ja',maybe:'Vielleicht',no:'Nein'}[state[e.id]]):'Noch nicht abgestimmt'} · Live: 👍 ${(liveCounts[e.id]||{}).yes||0} · 🤔 ${(liveCounts[e.id]||{}).maybe||0} · 👎 ${(liveCounts[e.id]||{}).no||0}</small><details class="vote-details" data-program-detail="${e.id}"><summary>📊 Abstimmung ansehen</summary>${voteOverview(e)}</details>${canDeleteActivities?`<button type="button" class="activity-delete" data-delete-activity="${e.id}" ${kufDeleteBusy?'disabled':''} aria-label="${escapeText('Aktivität löschen: '+e.title)}">Aktivität löschen</button>`:''}<div class="photo-caption">Foto: <a href="${escapeText(e.photoSource)}" target="_blank" rel="noopener noreferrer">${escapeText(e.photoCredit)}</a></div></div></article>`).join('')||'<p class="muted">Keine Aktivitäten zur Abstimmung.</p>';container.querySelectorAll('[data-program-detail]').forEach(n=>{n.open=opened.has(n.dataset.programDetail);});container.querySelectorAll('[data-delete-activity]').forEach(button=>button.addEventListener('click',()=>deleteActivity(button.dataset.deleteActivity)));window.tripTextEditor?.refresh()}function escapeText(x){return String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function showJoin(){
  let el=document.getElementById('group-join');
  if(!el){el=document.createElement('section');el.id='group-join';el.className='card';document.body.append(el)}

@@ -28,3 +28,9 @@ intact, and state that clearly before removal. This legacy trip has no
 member-created activity records; shared trips use group_program_items and allow
 creator/admin deletion with cascading votes and links. Test only rolled-back
 fixtures, never remove real activities for verification.
+
+Use the in-page activity-delete-dialog for removal confirmation, not window.confirm.
+Keep failures visible in that dialog and success feedback beside the activity
+cards. Use two wide columns on desktop and one on phones via trip-navigation.css.
+Do not use fixed subgrid row spans for activity content: admin controls change
+the number of children and would overlap or be clipped.
