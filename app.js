@@ -70,14 +70,14 @@ function showJoin(){
  if(!el){el=document.createElement('section');el.id='group-join';el.className='card';document.body.append(el)}
  el.innerHTML=`<div class="auth-box">
  <p class="auth-brand">KUFSTEIN 2026</p><h2>Anmelden</h2>
- <p class="auth-intro">Mit Nickname oder vollständigem Namen und deinem persönlichen Anmeldecode anmelden.</p>
+ <p class="auth-intro">Mit Nickname, vollständigem Namen oder E-Mail und deinem persönlichen Anmeldecode anmelden.</p>
  <form id="return-form">
- <label for="return-name">Nickname oder vollständiger Name</label><input id="return-name" maxlength="100" autocomplete="username" placeholder="Nickname oder vollständiger Name" value="${escapeText(state.name||'')}" required>
- <small>Beides führt zu deinem bestehenden Konto. Groß- und Kleinschreibung spielen keine Rolle.</small>
- <label for="return-code">Persönlicher Anmeldecode</label><input id="return-code" type="password" autocomplete="current-password" required>
+ <label for="return-name">Nickname, Name oder E-Mail</label><input id="return-name" maxlength="254" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Nickname, Name oder E-Mail" value="${escapeText(state.name||'')}" required>
+ <small>Alle drei Angaben führen zu deinem bestehenden Konto. Verwende deine gespeicherte E-Mail-Adresse.</small>
+ <label for="return-code">Anmeldecode</label><input id="return-code" type="password" autocomplete="current-password" required>
  <button id="return-button" type="submit">Anmelden</button><p id="return-status" class="auth-status" role="status" aria-live="polite"></p>
  </form>
- <details class="auth-alternative"><summary>Mit bestätigter E-Mail anmelden</summary>
+ <details class="auth-alternative"><summary>Alternativ: Anmeldelink per E-Mail</summary>
  <form id="email-login-form"><label for="login-email">E-Mail-Adresse</label><input id="login-email" type="email" autocomplete="email" placeholder="name@beispiel.at" required>
  <button id="login-email-button" class="secondary" type="submit">Anmeldelink senden</button><p id="login-email-status" class="auth-status" role="status" aria-live="polite"></p></form>
  </details>
@@ -115,18 +115,10 @@ async function returnWithName(){
  if(signInBusy)return;
  const name=document.getElementById('return-name').value.trim(),code=document.getElementById('return-code').value;
  const status=document.getElementById('return-status'),button=document.getElementById('return-button');
- if(!name||!code){status.textContent='Bitte Nickname oder vollständigen Namen und persönlichen Anmeldecode eingeben';return}
+ if(!name||!code){status.textContent='Bitte Nickname, vollständigen Namen oder E-Mail und persönlichen Anmeldecode eingeben';return}
  signInBusy=true;button.disabled=true;status.textContent='Bestehende Stimmen werden geladen …';
  try{
-  const {data:{session},error:sessionError}=await sb.auth.getSession();
-  if(sessionError)throw sessionError;
-  authUser=session?.user||null;
-  if(!authUser){
-   const {data,error}=await sb.auth.signInAnonymously();
-   if(error)throw error;authUser=data.user;
-  }
-  const {error}=await sb.rpc('recover_kufstein_member',{p_code:code,p_name:name});
-  if(error)throw error;
+  authUser=await window.GroupMemberLogin.signIn(sb,name,code);
   await completeSignIn();
  }catch(e){status.textContent='Anmeldung fehlgeschlagen: '+(e.message||String(e))}
  finally{signInBusy=false;button.disabled=false}
